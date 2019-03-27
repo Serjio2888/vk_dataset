@@ -3,6 +3,7 @@ import vk
 import pandas as pd
 import numpy as np
 import time
+from itertools import count
 import user_info_constants
 
 """
@@ -12,9 +13,9 @@ import user_info_constants
 токен доступа можно получить по этой ссылке
 https://oauth.vk.com/authorize?client_id=6848946%20&redirect_uri=https://oauth.vk.com/blank.html&response_type=token&scope=8194
 """
-LAST_PREPROCESSED_USER=sys.argv[1]
-ACCESS_TOKEN=sys.argv[2]
-API_VERSION=5.92
+LAST_PREPROCESSED_USER = 6_500_000 # int(sys.argv[1])
+ACCESS_TOKEN = "b8a066f200dfdb2f5713697ffd7ddb95fa6700bd80ea887b0b7b83c6a7fa3f1bab9849282abc97db83ba7" # sys.argv[2]
+API_VERSION = 5.92
 SCOPE='users,wall'
 USER_FIELDS = 'about, activities, bdate, books, career,\
                  city, country, education, home_town,\
@@ -114,20 +115,21 @@ def get_subscriptions(vk_api, user_ids):
 def main():
     session = vk.Session(access_token=ACCESS_TOKEN)
     vk_api = vk.API(session, scope=SCOPE)
-    for num, user_ids in enumerate(np.split(range(1, 10**8), range(1000,10**8,999))):    
-        if num > LAST_PREPROCESSED_USER:
-            try:
-                print(num, len(user_ids))
-                print('a')
-                time.sleep(3)
-                print('b')
-                users_sub, not_privated_user_list = get_subscriptions(vk_api, user_ids)
-                pd.DataFrame(users_sub).to_csv(f"./sub/sub_{num}.csv")
-                time.sleep(3)
-                users_info = get_users(vk_api, not_privated_user_list)
-                pd.DataFrame(users_info).to_csv(f"./users/users_{num}.csv")
-            except:
-                print(f"badddd {num}")
+    from_id = LAST_PREPROCESSED_USER
+    to_id = 10**9
+    step = 999
+    for num, user_bound in enumerate(range(from_id, to_id, step)):
+        user_ids = np.arange(user_bound-step, user_bound)
+        try:
+            print(f"[{user_ids[0]}..{user_ids[-1]}]")
+            time.sleep(3)
+            users_sub, not_privated_user_list = get_subscriptions(vk_api, user_ids)
+            pd.DataFrame(users_sub).to_csv(f"./sub/sub_{num}.csv")
+            time.sleep(3)
+            users_info = get_users(vk_api, not_privated_user_list)
+            pd.DataFrame(users_info).to_csv(f"./users/users_{num}.csv")
+        except:
+            print(f"badddd {num}")
 
 if __name__ == '__main__':
     main()

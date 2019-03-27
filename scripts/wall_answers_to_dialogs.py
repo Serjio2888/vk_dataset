@@ -141,16 +141,27 @@ def _remove_unnecessary_info(table):
     return table
 
 
+def _is_last_and_first_utterance_equal(first, second):
+    tail = first.tail(1)
+    tail = _remove_unnecessary_info(tail)
+    head = second.head(1)
+    head = _remove_unnecessary_info(head)
+    return (tail == head).all(axis=1).item()
+
+
+def _is_persons_equal(first, second):
+    f_set = set(first['from_id'])
+    s_set = set(second['from_id'])
+    return f_set == s_set
+
+
 def post_process_dialogs_from_answers(dialogs):
     source_dialogs = list(map(pd.concat, dialogs))
     processed_dialogs = []
     acc = [source_dialogs[0]]
     for dialog in source_dialogs[1:]:
-        tail = acc[-1].tail(1)
-        tail = _remove_unnecessary_info(tail)
-        head = dialog.head(1)
-        head = _remove_unnecessary_info(head)
-        if (tail == head).all(axis=1).item():
+        if _is_last_and_first_utterance_equal(acc[-1], dialog) \
+                and _is_persons_equal(acc[-1], dialog):
             acc.append(dialog)
         else:
             completed_dialog = pd.concat(acc)
@@ -158,3 +169,4 @@ def post_process_dialogs_from_answers(dialogs):
             processed_dialogs.append(completed_dialog)
             acc = [dialog]
     return processed_dialogs
+
